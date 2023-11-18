@@ -9,11 +9,7 @@ repository = "https://github.com/arturkow2000/generic-timer"
 keywords = ["no-std"]
 
 [features]
-embassy_cp15 = [
-    "dep:critical-section",
-    "dep:embassy-time",
-    "dep:embassy-sync"
-]
+embassy_cp15 = ["dep:critical-section", "dep:embassy-time", "dep:embassy-sync"]
 
 [dependencies.critical-section]
 version = "1"
@@ -21,10 +17,10 @@ optional = true
 
 [dependencies.embassy-time]
 git = "https://github.com/embassy-rs/embassy"
-version = "0.1.0"
+version = "0.1"
 optional = true
 
 [dependencies.embassy-sync]
 git = "https://github.com/embassy-rs/embassy"
-version = "0.1.0"
+version = "0.4"
 optional = true
