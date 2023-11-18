@@ -1,6 +1,6 @@
 use core::{
     cell::Cell,
-    mem, ptr,
+    ptr,
     sync::atomic::{AtomicU64, AtomicU8, Ordering},
 };
 
@@ -79,19 +79,6 @@ impl CP15Driver {
         // we never create one that's out of bounds.
         unsafe { self.alarms.borrow(cs).get_unchecked(alarm.id() as usize) }
     }
-
-    fn trigger_alarm(&self, n: usize, cs: CriticalSection) {
-        let alarm = &self.alarms.borrow(cs)[n];
-        alarm.timestamp.set(u64::MAX);
-
-        // Call after clearing alarm, so the callback can set another alarm.
-
-        // safety:
-        // - we can ignore the possiblity of `f` being unset (null) because of the safety contract of `allocate_alarm`.
-        // - other than that we only store valid function pointers into alarm.callback
-        let f: fn(*mut ()) = unsafe { mem::transmute(alarm.callback.get()) };
-        f(alarm.ctx.get());
-    }
 }
 
 impl Driver for CP15Driver {
@@ -132,9 +119,8 @@ impl Driver for CP15Driver {
         })
     }
 
-    fn set_alarm(&self, alarm: embassy_time::driver::AlarmHandle, timestamp: u64) {
+    fn set_alarm(&self, alarm: embassy_time::driver::AlarmHandle, timestamp: u64) -> bool {
         critical_section::with(|cs| {
-            let n = alarm.id() as _;
             let alarm = self.get_alarm(cs, alarm);
             alarm.timestamp.set(timestamp);
 
@@ -142,12 +128,12 @@ impl Driver for CP15Driver {
             let t = unsafe { crate::cp15_read_cntpct() } / ratio;
 
             if timestamp <= t {
-                self.trigger_alarm(n, cs);
-                return;
+                return false;
             }
 
-            unsafe { crate::cp15_write_cval(timestamp) }
-        });
+            unsafe { crate::cp15_write_cval(timestamp) };
+            true
+        })
     }
 }
 
